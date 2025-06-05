@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可编辑网页</title>
+    <style>
+        body {
+            background-color: #f5f5dc; /* 米黄色背景 */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #555;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .editable {
+            min-height: 50px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+        }
+        .image-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #uploadedImage {
+            max-width: 100%;
+            max-height: 400px;
+            display: none; /* 初始隐藏，上传后显示 */
+        }
+        .upload-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="editable" id="title">这里是标题 - 点击编辑</h1>
+        
+        <div class="editable" id="description">
+            <p>这里是说明文字 - 点击编辑。您可以在这里添加任何您想要的文字内容，描述您的项目、产品或想法。</p>
+            <p>第二段说明文字示例。</p>
+        </div>
+        
+        <div class="image-container">
+            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            <button class="upload-btn" onclick="document.getElementById('imageUpload').click()">上传图片</button>
+            <div>
+                <img id="uploadedImage" alt="上传的图片将显示在这里">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 使标题可编辑
+        document.getElementById('title').addEventListener('click', function() {
+            this.setAttribute('contenteditable', 'true');
+            this.focus();
+        });
+        
+        // 使描述文字可编辑
+        document.getElementById('description').addEventListener('click', function() {
+            this.setAttribute('contenteditable', 'true');
+            this.focus();
+        });
+        
+        // 图片上传功能
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.getElementById('uploadedImage');
+                    img.src = event.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
