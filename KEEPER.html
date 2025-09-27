@@ -80,14 +80,6 @@
                     <i class="fa fa-plus"></i>
                     <span>新游戏</span>
                 </button>
-                <button id="btn-load-game" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
-                    <i class="fa fa-folder-open"></i>
-                    <span>加载存档</span>
-                </button>
-                <button id="btn-save-game" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
-                    <i class="fa fa-save"></i>
-                    <span>保存游戏</span>
-                </button>
                 <button id="btn-rules" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
                     <i class="fa fa-book"></i>
                     <span>规则查询</span>
@@ -533,7 +525,7 @@
             }
             
             // 选择模组
-            function selectModule(moduleId) {
+            async function selectModule(moduleId) {
                 const modules = {
                     'module1': {
                         id: 'module1',
@@ -559,7 +551,7 @@
                 if (!gameState.currentCharacter) {
                     createSampleCharacter();
                 } else {
-                    startGame();
+                    await startGame();
                 }
             }
             
@@ -673,10 +665,18 @@
             }
             
             // 开始游戏
-            function startGame() {
+            async function startGame() {
                 gameState.isRunning = true;
                 gameState.startTime = new Date();
                 gameState.conversationHistory = [];
+                
+                // 重置AI对话历史
+                await resetAiConversation();
+                
+                // 设置模组特定的系统提示
+                if (gameState.currentModule?.id) {
+                    await setAiSystemPrompt(gameState.currentModule.id);
+                }
                 
                 // 隐藏欢迎界面，显示对话区域
                 welcomeScreen.classList.add('hidden');
@@ -706,26 +706,30 @@
             }
             
             // 生成游戏开始描述
-            function generateGameStartDescription() {
-                if (!gameState.currentModule || !gameState.currentCharacter) return;
-                
-                const descriptions = {
-                    'module1': `
-                        <p>1925年秋，新英格兰的阿卡姆镇笼罩在一片阴郁的雾气中。</p>
-                        <p>作为一名${gameState.currentCharacter.occupation}，你接到了一份奇怪的委托。过去两周内，镇上的黑猫酒馆附近已有三人神秘失踪，当地警方似乎有意淡化此事。</p>
-                        <p>今晚，你决定亲自前往调查。酒馆的木质招牌在风中吱吱作响，微弱的灯光从窗户透出，隐约能听见里面传来的嘈杂声...</p>
-                    `,
-                    'module2': `
-                        <p>1927年夏天，你作为${gameState.currentCharacter.occupation}，被派往缅因州海岸边一个名为因纽斯茅斯的小渔村。</p>
-                        <p>当地渔民最近报告了异常的海洋活动和奇怪的生物目击事件。更令人不安的是，村里的居民行为越来越诡异，很少与外界接触。</p>
-                        <p>当你乘坐的小船靠近码头时，你注意到几个穿着破旧雨衣的人影在远处监视着你。空气中弥漫着海水和腐烂的气味...</p>
-                    `,
-                    'module3': `
-                        <p>1924年春，阿卡姆图书馆收到了一批珍贵的古籍捐赠，其中包括一本罕见的拉丁文手稿《死者之书》的抄本。</p>
-                        <p>作为${gameState.currentCharacter.occupation}，你被邀请来协助鉴定这些古籍。然而，接手这项工作的前两位学者都因不明原因病倒了，一人甚至发疯被送进了精神病院。</p>
-                        <p>现在，你站在图书馆的特藏书库前，管理员用怀疑的眼神看着你，"准备好了吗？记住，不要在里面待太久..."</p>
-                    `
-                };
+                function generateGameStartDescription() {
+                    if (!gameState.currentModule || !gameState.currentCharacter) return;
+                    
+                    // 增强的模组开始描述，包含更多细节和氛围营造
+                    const descriptions = {
+                        'module1': `
+                            <p>1925年秋，新英格兰的阿卡姆镇被一片浓稠的雾气笼罩，仿佛世界本身都在隐藏着什么不可告人的秘密。</p>
+                            <p>作为一名${gameState.currentCharacter.occupation}，你最近的委托少得可怜，直到三天前，一封匿名信出现在你的办公桌上。信中用颤抖的字迹描述了过去两周内，黑猫酒馆附近发生的三起神秘失踪案，以及警方如何敷衍了事。</p>
+                            <p>今晚，好奇心和职业责任感驱使你来到了这个声名狼藉的地方。酒馆的木质招牌在寒风中发出刺耳的吱呀声，窗户里透出的黄色灯光在雾中显得格外诡异。你能听到里面传来模糊的笑声和碰杯声，但总感觉其中隐藏着某种不自然的韵律。</p>
+                            <p>你深吸一口气，推开了那扇吱呀作响的木门...<span class="text-cthulhu-gold">你的冒险开始了。</span></p>
+                        `,
+                        'module2': `
+                            <p>1927年夏天，缅因州海岸的阳光异常毒辣，但你的心中却充满了不安。作为一名${gameState.currentCharacter.occupation}，你被一家神秘的基金会雇佣，调查因纽斯茅斯小渔村的异常现象。</p>
+                            <p>出发前，你查阅了大量资料，发现这个渔村有着悠久而阴暗的历史。当地渔民最近的报告更加令人不安：他们声称看到了巨大的阴影在深海中移动，听到了来自海底的奇怪呼唤，甚至有人说看到了半人半鱼的生物在月光下的海滩上游荡。</p>
+                            <p>当你的小船缓缓靠近因纽斯茅斯的码头时，你注意到整个村庄仿佛被一层诡异的寂静所笼罩。几个穿着破旧雨衣的当地人站在码头上，他们的眼睛呈现出奇怪的淡黄色，让你不寒而栗。空气中弥漫着海水的咸味和一种难以形容的腐臭。</p>
+                            <p>你踏上码头的木板，发出的每一声脆响都在寂静中显得格外响亮。<span class="text-cthulhu-gold">欢迎来到因纽斯茅斯，调查员。愿你能活着离开。</span></p>
+                        `,
+                        'module3': `
+                            <p>1924年春，阿卡姆图书馆的大厅里弥漫着古老纸张和抛光木材的气味。作为一名${gameState.currentCharacter.occupation}，你今天收到了一份不同寻常的邀请：协助鉴定一批刚刚捐赠的稀有古籍，其中包括一本据说是《死者之书》的拉丁文抄本。</p>
+                            <p>你当然听说过《死者之书》——那本传说中记载着禁忌知识的古籍，据说阅读它的人要么发疯，要么死亡。更让你不安的是，接手这项工作的前两位学者都遭遇了不测：一位突发心脏病去世，另一位则在阅读手稿后变得语无伦次，最终被送进了精神病院。</p>
+                            <p>现在，你站在特藏书库厚重的橡木门前，管理员麦克斯韦先生用一种复杂的眼神看着你。"准备好了吗，先生？"他的声音沙哑而紧张，"记住，不要在里面待太久，不要大声朗读那些文字...还有，无论听到什么声音，都不要回头。"</p>
+                            <p>他拿出一串古老的钥匙，插入锁孔。金属摩擦的声音在寂静的走廊中回荡，让你不自主地握紧了拳头。<span class="text-cthulhu-gold">门开了，黑暗在等着你。</span></p>
+                        `
+                    };
                 
                 const description = descriptions[gameState.currentModule.id] || 
                                     `<p>欢迎来到克苏鲁的呼唤世界，${gameState.currentCharacter.name}。</p><p>你的冒险即将开始...</p>`;
@@ -733,8 +737,144 @@
                 addKpMessage(description);
             }
             
+            // 调用AI服务获取KP响应
+            async function callAiService(message, context = {}) {
+                try {
+                    const response = await fetch('http://localhost:8080/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            module: gameState.currentModule?.id,
+                            character: gameState.currentCharacter,
+                            history: gameState.conversationHistory.slice(-5),
+                            context: context
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.status === 'success' && data.response) {
+                        return data.response;
+                    } else {
+                        console.error('AI服务返回错误:', data.message || '未知错误');
+                        return null;
+                    }
+                } catch (error) {
+                    console.error('调用AI服务时出错:', error);
+                    return null;
+                }
+            }
+            
+            // 构建用于API调用的上下文
+            function buildContextForApi() {
+                // 获取模组信息
+                let moduleInfo = '当前模组: ' + (gameState.currentModule?.name || '未知模组');
+                
+                // 获取角色信息
+                let characterInfo = '玩家角色: ';
+                if (gameState.currentCharacter) {
+                    characterInfo += '\n姓名: ' + gameState.currentCharacter.name + '\n';
+                    characterInfo += '职业: ' + gameState.currentCharacter.occupation + '\n';
+                    characterInfo += '年龄: ' + gameState.currentCharacter.age + '\n';
+                    characterInfo += '理智值: ' + gameState.currentCharacter.derivedAttributes.san + '/99\n';
+                    
+                    // 添加主要技能信息
+                    characterInfo += '主要技能:\n';
+                    const skills = gameState.currentCharacter.skills;
+                    const mainSkills = Object.entries(skills)
+                        .sort(([,a], [,b]) => b - a)
+                        .slice(0, 5);
+                    mainSkills.forEach(([skill, value]) => {
+                        characterInfo += '- ' + skill + ': ' + value + '%\n';
+                    });
+                } else {
+                    characterInfo += '尚未创建角色';
+                }
+                
+                // 获取最近的对话历史（最近5条）
+                const recentHistory = gameState.conversationHistory
+                    .slice(-5)
+                    .map(msg => (msg.role === 'player' ? '玩家' : 'KP') + ': ' + msg.content)
+                    .join('\n');
+                
+                return {
+                    moduleInfo,
+                    characterInfo,
+                    recentHistory
+                };
+            }
+            
+            // 格式化KP响应，处理HTML标签和特殊格式
+            function formatKpResponse(response) {
+                // 确保响应包含一些基本的HTML标签
+                if (!response.includes('<p>') && !response.includes('<br>')) {
+                    response = response.split('\n').map(para => '<p>' + para + '</p>').join('');
+                }
+                
+                // 添加一些额外的格式美化
+                response = response.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                response = response.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                
+                // 添加选择提示
+                if (!response.includes('你想怎么做？')) {
+                    response += '<p class="mt-4 italic opacity-80">你想怎么做？</p>';
+                }
+                
+                return response;
+            }
+            
+            // 重置AI对话历史
+            async function resetAiConversation() {
+                try {
+                    await fetch('http://localhost:8080/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ reset: true })
+                    });
+                    console.log('AI对话历史已重置');
+                } catch (error) {
+                    console.error('重置AI对话历史时出错:', error);
+                }
+            }
+            
+            // 设置AI系统提示
+            async function setAiSystemPrompt(moduleId) {
+                try {
+                    let specificPrompt = '';
+                    
+                    // 通用简洁回复要求
+                    const conciseRequirements = '\n\n请注意：\n1. 回复务必简洁明了，避免冗长的描述\n2. 不要臆测玩家未明确描述的行为或心理活动\n3. 只描述玩家实际执行的动作及其直接结果\n4. 聚焦于提供游戏必要信息和推动剧情发展\n5. 保持适度的克苏鲁神秘氛围，但不过度渲染恐怖元素';
+                    
+                    // 根据不同模组设置特定的系统提示
+                    if (moduleId === 'module1') {
+                        specificPrompt = '你是一名专业的克苏鲁神话跑团游戏主持人，现在正在主持「黑猫酒馆的秘密」模组。这个模组发生在1920年代新英格兰小镇，涉及一系列奇怪的失踪案。请用中文回复。' + conciseRequirements;
+                    } else if (moduleId === 'module2') {
+                        specificPrompt = '你是一名专业的克苏鲁神话跑团游戏主持人，现在正在主持「深海之下」模组。这个模组发生在一个偏远渔村，涉及古老的海底秘密和可怕的仪式。请用中文回复。' + conciseRequirements;
+                    } else if (moduleId === 'module3') {
+                        specificPrompt = '你是一名专业的克苏鲁神话跑团游戏主持人，现在正在主持「阿卡姆图书馆奇闻」模组。这个模组发生在阿卡姆图书馆，涉及神秘古籍和奇怪的幻觉。请用中文回复。' + conciseRequirements;
+                    }
+                    
+                    if (specificPrompt) {
+                        await fetch('http://localhost:8080/api/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ system_prompt: specificPrompt })
+                        });
+                        console.log('AI系统提示已设置');
+                    }
+                } catch (error) {
+                    console.error('设置AI系统提示时出错:', error);
+                }
+            }
+            
             // 处理玩家输入
-            function processPlayerInput() {
+            async function processPlayerInput() {
                 const input = userInput.value.trim();
                 if (!input || !gameState.isRunning) return;
                 
@@ -743,9 +883,56 @@
                 
                 // 添加玩家消息到对话历史
                 addPlayerMessage(input);
+                gameState.conversationHistory.push({ role: 'player', content: input });
                 
-                // 模拟KP响应
-                setTimeout(() => generateKpResponse(input), 500);
+                // 显示思考中状态
+                const thinkingElement = document.createElement('div');
+                thinkingElement.className = 'kp-message mb-4';
+                thinkingElement.innerHTML = `
+                    <div class="font-bold mb-1 text-cthulhu-gold">KP:</div>
+                    <div class="bg-cthulhu-deep p-4 rounded-lg border-l-4 border-cthulhu-gold animate-pulse">
+                        <span class="text-gray-400">KP正在思考...</span>
+                    </div>
+                `;
+                dialogueArea.appendChild(thinkingElement);
+                gameContent.scrollTop = gameContent.scrollHeight;
+                
+                try {
+                    // 构建上下文
+                    const context = buildContextForApi();
+                    
+                    // 构建完整的提示信息
+                    const fullPrompt = context.moduleInfo + '\n' + context.characterInfo + '\n\n最近对话历史：\n' + context.recentHistory + '\n\n玩家最新行动：' + input + '\n\n请以KP的身份回应。考虑到角色的理智状态，提供符合克苏鲁神话风格的回应。';
+                    
+                    // 调用AI服务
+                    let response = await callAiService(fullPrompt);
+                    
+                    // 如果API调用失败，回退到本地逻辑
+                    if (!response) {
+                        response = generateKpResponseLocal(input);
+                    }
+                    
+                    // 格式化响应
+                    const formattedResponse = formatKpResponse(response);
+                    
+                    // 替换思考中消息为实际响应
+                    thinkingElement.innerHTML = `
+                        <div class="font-bold mb-1 text-cthulhu-gold">KP:</div>
+                        <div class="bg-cthulhu-deep p-4 rounded-lg border-l-4 border-cthulhu-gold">${formattedResponse}</div>
+                    `;
+                    
+                    // 更新游戏状态中的对话历史
+                    gameState.conversationHistory.push({ role: 'kp', content: formattedResponse });
+                    
+                } catch (error) {
+                    console.error('处理玩家输入时出错:', error);
+                    thinkingElement.innerHTML = `
+                        <div class="font-bold mb-1 text-cthulhu-gold">KP:</div>
+                        <div class="bg-cthulhu-deep p-4 rounded-lg border-l-4 border-cthulhu-gold">
+                            抱歉，发生了一些错误。让我们继续冒险吧...
+                        </div>
+                    `;
+                }
             }
             
             // 添加玩家消息
@@ -776,33 +963,165 @@
                 gameContent.scrollTop = gameContent.scrollHeight;
             }
             
-            // 生成KP响应
-            function generateKpResponse(playerInput) {
-                // 简单的关键词匹配和模板响应
+            // 生成KP响应（本地回退逻辑）
+            function generateKpResponseLocal(playerInput) {
+                // 增强的响应逻辑，根据不同场景和输入类型生成更自然的回应
                 const lowerInput = playerInput.toLowerCase();
                 
-                let response = '';
+                // 基于当前模组的上下文特定响应
+                const moduleResponses = {
+                    'module1': {
+                        '查看': [
+                            `<p>黑猫酒馆的外观显得破旧而神秘。木质的外墙已经发黑，窗户上蒙着一层厚厚的灰尘。你注意到二楼的一扇窗户微微透出黄色的灯光，似乎有人在里面。门前的台阶上有新鲜的泥脚印，一直延伸到街道对面的小巷中。</p>`,
+                            `<p>你扫视了酒馆内部，烟雾缭绕中可以看到几张油腻的木桌和吧台。角落里坐着几个看起来不怀好意的人正在窃窃私语。吧台后面的酒保警惕地打量着你。墙上挂着一些老旧的装饰品，其中一面镜子似乎有些歪斜，反光中隐约映出一个你之前没有注意到的门。</p>`
+                        ],
+                        '调查': [
+                            `<p>你走向那些泥脚印，它们看起来是由一双大号靴子留下的。仔细观察后，你发现鞋底的花纹很特别，像是某种工作靴。脚印有些杂乱，似乎留下脚印的人当时很匆忙。<span class="text-cthulhu-gold">请进行一次侦察检定</span>以获取更多线索。</p>`,
+                            `<p>你小心翼翼地靠近吧台，试图与酒保交谈。他看起来很不耐烦，但当你提到失踪事件时，他的表情突然变得紧张。"我不知道你在说什么，"他低声说，同时警惕地环顾四周。<span class="text-cthulhu-gold">请进行一次说服检定</span>来说服他开口。</p>`
+                        ],
+                        '交谈': [
+                            `<p>角落里的一个老人注意到你在观察周围，他向你招了招手。"年轻人，"他沙哑地说，"我劝你别多管闲事。这地方最近不太干净..."他的眼中充满了恐惧。</p>`,
+                            `<p>酒保不情愿地靠近你，压低声音说："好吧，我听说...上周有个陌生人经常来这里，总是坐在角落里喝闷酒。然后失踪案就开始了。他的眼睛...很奇怪，像是在盯着什么看不见的东西。"</p>`
+                        ]
+                    },
+                    'module2': {
+                        '查看': [
+                            `<p>因纽斯茅斯的码头显得荒凉而破败。几艘破旧的渔船东倒西歪地停泊着，甲板上覆盖着绿色的海藻。远处的村落里，低矮的木屋杂乱无章地排列着，烟囱里冒出的黑烟在阴沉的天空下显得格外刺眼。几个当地人用冷漠而警惕的目光打量着你。</p>`,
+                            `<p>空气中弥漫着海水和腐烂的鱼腥味，混合着一种难以形容的恶心气味。你注意到海滩上有一些奇怪的痕迹，像是某种巨大生物拖行留下的。远处的海面上，乌云密布，似乎有一场风暴正在酝酿。</p>`
+                        ],
+                        '调查': [
+                            `<p>你走向海滩上的痕迹，它们看起来不像是任何你熟悉的海洋生物留下的。痕迹的宽度大约有两英尺，上面还沾着一些发亮的粘液。<span class="text-cthulhu-gold">请进行一次生物学或侦察检定</span>来分析这些痕迹。</p>`,
+                            `<p>你尝试与一位看起来相对友善的当地人交谈。他一开始很警惕，但当你表明自己是来调查异常现象时，他的表情变得惊恐。"别问，"他紧张地说，"你最好现在就离开这个地方。深海中的东西...它们在召唤。<span class="text-cthulhu-gold">请进行一次心理学检定</span>来判断他是否在说实话。</p>`
+                        ],
+                        '交谈': [
+                            `<p>一位老渔夫蹒跚地向你走来，他的眼睛肿胀发红，皮肤呈现出奇怪的青灰色。"外来人，"他用沙哑的声音说，"这片海...不再属于人类了。深潜者们...他们要来了。"他突然开始颤抖，仿佛回忆起了什么可怕的事情。</p>`,
+                            `<p>你注意到一个年轻女孩正在远处偷偷看着你。当你走近她时，她犹豫了一下，然后小声说："我父亲说，最近月圆之夜，有人在海边举行奇怪的仪式。他们呼唤着...达贡。请你...请你救救我们。"</p>`
+                        ]
+                    },
+                    'module3': {
+                        '查看': [
+                            `<p>阿卡姆图书馆的特藏书库昏暗而潮湿，空气中弥漫着陈旧纸张和皮革的气味。书架从地面一直延伸到高高的天花板，上面摆满了古老的书籍和手稿。墙上挂着几盏煤油灯，微弱的光线只能照亮一小片区域。你注意到角落里的一张桌子上散落着一些笔记和一张奇怪的地图。</p>`,
+                            `<p>《死者之书》的抄本被放在房间中央的一个特制书架上，它的封面是用某种深色皮革制成的，上面刻着复杂的符文。当你走近它时，你感到一股寒意爬上脊梁，仿佛有什么不可名状的存在在注视着你。书架旁的地板上有一些奇怪的污渍，看起来像是干涸的水渍，但颜色却呈现出诡异的淡绿色。</p>`
+                        ],
+                        '调查': [
+                            `<p>你仔细查看桌上的笔记，它们是用潦草的拉丁文写成的，内容似乎涉及某种古老的仪式。笔记的最后几页被撕掉了，只留下一些模糊的痕迹。<span class="text-cthulhu-gold">请进行一次图书馆使用或语言学检定</span>来解读这些笔记。</p>`,
+                            `<p>你小心地翻开《死者之书》的抄本，第一页上写着一段警告："凡阅读此书者，将直视深渊。"里面的文字不断变化，时而清晰时而模糊，似乎有自己的生命。<span class="text-cthulhu-gold">请进行一次意志检定</span>以继续阅读，或者你可以选择合上书本。</p>`
+                        ],
+                        '交谈': [
+                            `<p>图书馆管理员悄悄走进房间，他看起来脸色苍白，ито思量着恐惧。"我就知道你会来，"他低声说，"前两位学者...他们读了那本书后，开始说一些听不懂的语言，然后...然后他们看到了什么。一些不应该被看见的东西。"</p>`,
+                            `<p>你突然听到身后传来一阵低语声，像是有无数人在你耳边窃窃私语，但当你转身时，房间里空无一人。那些声音越来越清晰，你开始能分辨出一些词语："拉莱耶...克苏鲁...苏醒..." <span class="text-cthulhu-gold">请进行一次理智检定</span>。</p>`
+                        ]
+                    }
+                };
                 
-                if (lowerInput.includes('查看') || lowerInput.includes('观察')) {
-                    response = `<p>你仔细观察周围环境，发现了一些细节：</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>一件闪着微光的物体半埋在灰尘中</li><li>墙上有一些奇怪的划痕，似乎是最近留下的</li><li>空气中弥漫着一种淡淡的异味</li></ul>`;
-                } else if (lowerInput.includes('调查') || lowerInput.includes('检查')) {
-                    response = `<p>你开始调查这个线索。<span class="text-cthulhu-gold">请进行一次技能检定</span>，你可以使用侦察技能。</p>`;
-                } else if (lowerInput.includes('交谈') || lowerInput.includes('对话') || lowerInput.includes('说')) {
-                    response = `<p>NPC用警惕的眼神看着你，"你想知道什么？"他的声音听起来有些紧张。</p>`;
-                } else if (lowerInput.includes('技能') || lowerInput.includes('检定')) {
-                    performSkillCheck();
-                    return;
-                } else if (lowerInput.includes('骰子')) {
-                    rollDice();
-                    return;
-                } else if (lowerInput.includes('离开') || lowerInput.includes('出去')) {
-                    response = `<p>你决定离开这个地方。当你转身走向出口时，突然听到身后传来一阵奇怪的声音...</p>`;
-                } else {
-                    response = `<p>你的行动产生了一些影响。接下来你想做什么？</p>`;
+                // 通用响应模板
+                const generalResponses = {
+                    '默认': [
+                        `<p>你的话在空中回荡，周围的环境似乎对你的行动做出了某种回应。接下来你想怎么做？</p>`,
+                        `<p>你的行动产生了一些影响。你感觉到这个地方隐藏着更多的秘密，等待着你去发现。</p>`,
+                        `<p>时间在这个诡异的地方似乎流动得很慢。你需要谨慎地决定下一步行动。</p>`
+                    ],
+                    '询问': [
+                        `<p>这是个好问题。你觉得呢？也许你应该更仔细地观察周围的环境，寻找线索。</p>`,
+                        `<p>这个问题的答案可能隐藏在某个被遗忘的角落。你需要深入调查才能找到真相。</p>`,
+                        `<p>好奇心有时候会带来危险...但也能揭开隐藏的秘密。你想如何继续？</p>`
+                    ],
+                    '恐惧': [
+                        `<p>一种深深的恐惧笼罩着你，但你必须保持冷静。在这种情况下，恐慌只会让事情变得更糟。</p>`,
+                        `<p>你的心跳加速，手心出汗，但你强迫自己保持镇定。你经历过许多危险的情况，这次也能度过。</p>`,
+                        `<p>恐惧如同潮水般涌来，但你凭借意志力将其压制。你知道，在克苏鲁的世界里，恐惧是最危险的敌人之一。</p>`
+                    ],
+                    '离开': [
+                        `<p>你决定离开这个地方，但你感觉有什么东西在黑暗中注视着你，仿佛不愿让你轻易逃脱。</p>`,
+                        `<p>当你走向出口时，突然传来一阵奇怪的声音，像是某种巨大生物的低吟。你加快了脚步。</p>`,
+                        `<p>离开这个地方似乎是明智的选择，但你知道，有些事情一旦开始，就不会轻易结束。</p>`
+                    ]
+                };
+                
+                let response = '';
+                const moduleId = gameState.currentModule?.id;
+                
+                // 检查是否有基于模组的特定响应
+                if (moduleId && moduleResponses[moduleId]) {
+                    const moduleData = moduleResponses[moduleId];
+                    
+                    if (lowerInput.includes('查看') || lowerInput.includes('观察')) {
+                        const randomIndex = Math.floor(Math.random() * moduleData['查看'].length);
+                        response = moduleData['查看'][randomIndex];
+                    } else if (lowerInput.includes('调查') || lowerInput.includes('检查')) {
+                        const randomIndex = Math.floor(Math.random() * moduleData['调查'].length);
+                        response = moduleData['调查'][randomIndex];
+                    } else if (lowerInput.includes('交谈') || lowerInput.includes('对话') || lowerInput.includes('说')) {
+                        const randomIndex = Math.floor(Math.random() * moduleData['交谈'].length);
+                        response = moduleData['交谈'][randomIndex];
+                    }
                 }
                 
-                // 添加KP响应
-                addKpMessage(response);
+                // 如果没有模组特定响应，则使用通用响应
+                if (!response) {
+                    if (lowerInput.includes('技能') || lowerInput.includes('检定')) {
+                        performSkillCheck();
+                        return;
+                    } else if (lowerInput.includes('骰子')) {
+                        rollDice();
+                        return;
+                    } else if (lowerInput.includes('离开') || lowerInput.includes('出去')) {
+                        const randomIndex = Math.floor(Math.random() * generalResponses['离开'].length);
+                        response = generalResponses['离开'][randomIndex];
+                    } else if (lowerInput.includes('?') || lowerInput.includes('？') || lowerInput.includes('什么') || lowerInput.includes('怎么')) {
+                        const randomIndex = Math.floor(Math.random() * generalResponses['询问'].length);
+                        response = generalResponses['询问'][randomIndex];
+                    } else if (lowerInput.includes('怕') || lowerInput.includes('恐惧') || lowerInput.includes('害怕') || lowerInput.includes('恐怖')) {
+                        const randomIndex = Math.floor(Math.random() * generalResponses['恐惧'].length);
+                        response = generalResponses['恐惧'][randomIndex];
+                    } else {
+                        // 添加随机元素，使响应更加多样化
+                        const randomIndex = Math.floor(Math.random() * generalResponses['默认'].length);
+                        response = generalResponses['默认'][randomIndex];
+                    }
+                }
+                
+                // 根据游戏进程和角色状态调整响应
+                if (gameState.currentCharacter) {
+                    const lowSanity = gameState.currentCharacter.derivedAttributes.san < 30;
+                    const veryLowSanity = gameState.currentCharacter.derivedAttributes.san < 15;
+                    
+                    // 当理智值很低时，添加一些错乱的元素
+                    if (veryLowSanity) {
+                        const delusions = [
+                            `<p><span class="italic text-red-400">（你眼前的世界似乎在扭曲，颜色变得异常鲜艳，物体的边缘开始模糊...）</span></p>`,
+                            `<p><span class="italic text-red-400">（你听到了一些别人听不到的声音，像是指甲刮过玻璃的刺耳声...）</span></p>`,
+                            `<p><span class="italic text-red-400">（你的皮肤开始发痒，仿佛有无数小虫在皮下爬行...）</span></p>`
+                        ];
+                        const randomDelusion = delusions[Math.floor(Math.random() * delusions.length)];
+                        response += randomDelusion;
+                    } else if (lowSanity) {
+                        const unease = [
+                            `<p><span class="italic text-yellow-400">（你感到一阵不安，仿佛有什么可怕的事情即将发生...）</span></p>`,
+                            `<p><span class="italic text-yellow-400">（你突然回忆起一些片段，那些你以为已经忘记的恐怖记忆...）</span></p>`
+                        ];
+                        const randomUnease = unease[Math.floor(Math.random() * unease.length)];
+                        response += randomUnease;
+                    }
+                }
+                
+                // 添加一些随机的剧情推进元素，使游戏更加生动
+                const randomEventChance = 0.15; // 15%的几率触发随机事件
+                if (Math.random() < randomEventChance) {
+                    const randomEvents = [
+                        `<p class="text-cthulhu-gold">突然，你注意到某个细节与之前不同了...</p>`,
+                        `<p class="text-cthulhu-gold">空气中弥漫着一股诡异的气味，让你感到不适...</p>`,
+                        `<p class="text-cthulhu-gold">远处传来一声不明的响动，打破了寂静...</p>`
+                    ];
+                    const randomEvent = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                    response += randomEvent;
+                }
+                
+                // 结束时添加一个选择提示，鼓励玩家继续互动
+                response += `<p class="mt-4 italic opacity-80">你想怎么做？</p>`;
+                
+                // 返回响应，由processPlayerInput函数添加到界面
+                return response;
             }
             
             // 执行技能检定
