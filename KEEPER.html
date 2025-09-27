@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>克苏鲁的呼唤 - KP智能助手</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cthulhu-deep': '#0c1821',
+                        'cthulhu-blue': '#1b2a41',
+                        'cthulhu-indigo': '#253f51',
+                        'cthulhu-gold': '#b5a642',
+                        'cthulhu-purple': '#5e548e',
+                        'cthulhu-text': '#eef4ed',
+                        'cthulhu-accent': '#3a86ff',
+                    },
+                    fontFamily: {
+                        'cthulhu': ['Georgia', 'serif'],
+                        'body': ['Segoe UI', 'system-ui', 'sans-serif']
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        glow: {
+                            '0%': { textShadow: '0 0 5px #fff, 0 0 10px #fff, 0 0 15px #3a86ff, 0 0 20px #3a86ff' },
+                            '100%': { textShadow: '0 0 10px #fff, 0 0 20px #fff, 0 0 30px #3a86ff, 0 0 40px #3a86ff' },
+                        }
+                    }
+                },
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto { content-visibility: auto; }
+            .text-shadow { text-shadow: 0 0 5px rgba(58, 134, 255, 0.5); }
+            .bg-glass { background: rgba(12, 24, 33, 0.7); backdrop-filter: blur(10px); }
+            .scrollbar-thin { scrollbar-width: thin; }
+            .scrollbar-thumb-rounded { scrollbar-color: rgba(58, 134, 255, 0.5) transparent; }
+            .border-gradient { border-image: linear-gradient(to right, #3a86ff, #5e548e) 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-cthulhu-deep to-cthulhu-blue text-cthulhu-text font-body min-h-screen flex flex-col">
+    <!-- 页面背景装饰 -->
+    <div class="fixed inset-0 z-0 opacity-10 pointer-events-none">
+        <div class="absolute top-20 left-20 w-40 h-40 rounded-full bg-cthulhu-purple blur-3xl animate-float"></div>
+        <div class="absolute top-1/3 right-20 w-60 h-60 rounded-full bg-cthulhu-gold blur-3xl animate-float" style="animation-delay: 2s;"></div>
+        <div class="absolute bottom-20 left-1/3 w-80 h-80 rounded-full bg-cthulhu-blue blur-3xl animate-float" style="animation-delay: 4s;"></div>
+    </div>
+
+    <!-- 导航栏 -->
+    <header class="bg-glass border-b border-cthulhu-indigo sticky top-0 z-50">
+        <nav class="container mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center gap-3 mb-3 md:mb-0">
+                <i class="fa fa-book text-cthulhu-gold text-2xl"></i>
+                <h1 class="text-2xl font-cthulhu font-bold text-shadow">克苏鲁的呼唤 - KP智能助手</h1>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button id="btn-new-game" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
+                    <i class="fa fa-plus"></i>
+                    <span>新游戏</span>
+                </button>
+                <button id="btn-load-game" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
+                    <i class="fa fa-folder-open"></i>
+                    <span>加载存档</span>
+                </button>
+                <button id="btn-save-game" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
+                    <i class="fa fa-save"></i>
+                    <span>保存游戏</span>
+                </button>
+                <button id="btn-rules" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
+                    <i class="fa fa-book"></i>
+                    <span>规则查询</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="flex-grow container mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
+        <!-- 左侧边栏 - 游戏控制 -->
+        <aside class="w-full md:w-80 lg:w-64 bg-glass rounded-xl p-4 border border-cthulhu-indigo shadow-lg">
+            <div class="mb-6">
+                <h2 class="text-xl font-bold mb-4 text-cthulhu-gold font-cthulhu">游戏状态</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm opacity-80">当前模组</label>
+                        <p id="current-module" class="font-medium truncate">未选择模组</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm opacity-80">调查员</label>
+                        <p id="current-character" class="font-medium truncate">未选择角色</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm opacity-80">游戏时长</label>
+                        <p id="game-time">00:00:00</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-xl font-bold mb-4 text-cthulhu-gold font-cthulhu">快捷操作</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-check-skill" class="p-3 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo flex flex-col items-center justify-center">
+                        <i class="fa fa-check-circle text-lg"></i>
+                        <span class="text-sm mt-1">技能检定</span>
+                    </button>
+                    <button id="btn-check-sanity" class="p-3 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo flex flex-col items-center justify-center">
+                        <i class="fa fa-brain text-lg"></i>
+                        <span class="text-sm mt-1">理智检定</span>
+                    </button>
+                    <button id="btn-roll-dice" class="p-3 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo flex flex-col items-center justify-center">
+                        <i class="fa fa-dice text-lg"></i>
+                        <span class="text-sm mt-1">投掷骰子</span>
+                    </button>
+                    <button id="btn-character-sheet" class="p-3 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo flex flex-col items-center justify-center">
+                        <i class="fa fa-id-card text-lg"></i>
+                        <span class="text-sm mt-1">角色卡</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div>
+                <h2 class="text-xl font-bold mb-4 text-cthulhu-gold font-cthulhu">理智值追踪</h2>
+                <div class="relative pt-1">
+                    <div class="flex mb-2 items-center justify-between">
+                        <div>
+                            <span id="san-value" class="text-sm font-semibold inline-block text-cthulhu-accent">0/0</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="san-percentage" class="text-sm font-semibold inline-block">0%</span>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-cthulhu-indigo">
+                        <div id="san-bar" style="width: 0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-cthulhu-accent to-cthulhu-gold"></div>
+                    </div>
+                </div>
+                
+                <!-- 理智值变化图表 -->
+                <canvas id="sanity-chart" height="120"></canvas>
+            </div>
+        </aside>
+
+        <!-- 中央主游戏区域 -->
+        <section class="flex-grow flex flex-col">
+            <!-- 游戏内容显示区 -->
+            <div id="game-content" class="flex-grow bg-glass rounded-xl p-6 border border-cthulhu-indigo shadow-lg mb-4 overflow-y-auto max-h-[calc(100vh-250px)] scrollbar-thin scrollbar-thumb-rounded">
+                <!-- 欢迎界面 -->
+                <div id="welcome-screen" class="flex flex-col items-center justify-center py-12 text-center">
+                    <div class="text-6xl mb-6 animate-float">
+                        <i class="fa fa-book text-cthulhu-gold"></i>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 font-cthulhu text-shadow">欢迎来到克苏鲁的呼唤</h2>
+                    <p class="text-lg max-w-2xl mb-8 opacity-90">在这个充满神秘与恐怖的世界中，你将扮演一名调查员，探索隐藏在黑暗中的真相。AI KP将引导你体验一场难忘的克苏鲁神话冒险。</p>
+                    <button id="btn-start-adventure" class="px-8 py-3 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold text-lg font-medium">
+                        开始冒险
+                    </button>
+                </div>
+                
+                <!-- 游戏对话区将动态生成 -->
+                <div id="dialogue-area" class="hidden space-y-6"></div>
+            </div>
+            
+            <!-- 输入区域 -->
+            <div class="bg-glass rounded-xl p-4 border border-cthulhu-indigo shadow-lg">
+                <form id="message-form" class="flex gap-2">
+                    <input type="text" id="user-input" placeholder="输入你的行动或对话..." 
+                           class="flex-grow px-4 py-3 bg-cthulhu-deep border border-cthulhu-indigo rounded-lg focus:outline-none focus:border-cthulhu-gold transition-colors">
+                    <button type="submit" class="px-6 py-3 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
+                        <i class="fa fa-paper-plane"></i>
+                        <span>发送</span>
+                    </button>
+                </form>
+                
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button class="quick-action px-3 py-1.5 text-sm bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo">
+                        查看周围环境
+                    </button>
+                    <button class="quick-action px-3 py-1.5 text-sm bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo">
+                        调查线索
+                    </button>
+                    <button class="quick-action px-3 py-1.5 text-sm bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo">
+                        与NPC交谈
+                    </button>
+                    <button class="quick-action px-3 py-1.5 text-sm bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-indigo">
+                        使用技能
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右侧边栏 - 角色信息 -->
+        <aside class="w-full md:w-80 bg-glass rounded-xl p-4 border border-cthulhu-indigo shadow-lg hidden lg:block">
+            <h2 class="text-xl font-bold mb-4 text-cthulhu-gold font-cthulhu">角色信息</h2>
+            
+            <!-- 角色基本信息 -->
+            <div id="character-info" class="mb-6 opacity-70">
+                <p class="text-center mb-4">请选择或创建一个角色</p>
+                <button id="btn-create-character" class="w-full py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold">
+                    创建角色
+                </button>
+            </div>
+            
+            <!-- 属性卡 -->
+            <div id="attributes-card" class="mb-6 hidden">
+                <h3 class="text-lg font-semibold mb-3">基础属性</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">力量</div>
+                        <div id="attr-str" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">体质</div>
+                        <div id="attr-con" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">体型</div>
+                        <div id="attr-siz" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">敏捷</div>
+                        <div id="attr-dex" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">外貌</div>
+                        <div id="attr-app" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">智力</div>
+                        <div id="attr-int" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">意志</div>
+                        <div id="attr-pow" class="font-bold">0</div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg text-center">
+                        <div class="text-xs opacity-70">教育</div>
+                        <div id="attr-edu" class="font-bold">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 派生属性 -->
+            <div id="derived-attributes" class="mb-6 hidden">
+                <h3 class="text-lg font-semibold mb-3">派生属性</h3>
+                <div class="space-y-2">
+                    <div class="bg-cthulhu-deep p-2 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div class="text-xs opacity-70">生命值</div>
+                            <div id="attr-hp" class="font-bold">0/0</div>
+                        </div>
+                        <div class="w-full bg-cthulhu-indigo h-1.5 mt-1 rounded-full overflow-hidden">
+                            <div id="hp-bar" class="bg-red-500 h-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div class="text-xs opacity-70">魔法值</div>
+                            <div id="attr-mp" class="font-bold">0/0</div>
+                        </div>
+                        <div class="w-full bg-cthulhu-indigo h-1.5 mt-1 rounded-full overflow-hidden">
+                            <div id="mp-bar" class="bg-purple-500 h-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-cthulhu-deep p-2 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div class="text-xs opacity-70">幸运值</div>
+                            <div id="attr-luck" class="font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 技能列表 -->
+            <div id="skills-list" class="mb-6 hidden">
+                <h3 class="text-lg font-semibold mb-3">主要技能</h3>
+                <div class="bg-cthulhu-deep p-2 rounded-lg max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded">
+                    <div class="space-y-2" id="skills-container">
+                        <!-- 技能将动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 物品栏 -->
+            <div id="inventory" class="hidden">
+                <h3 class="text-lg font-semibold mb-3">物品栏</h3>
+                <div class="bg-cthulhu-deep p-2 rounded-lg max-h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded">
+                    <ul id="items-list" class="list-disc pl-4 space-y-1">
+                        <!-- 物品将动态生成 -->
+                    </ul>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-glass border-t border-cthulhu-indigo py-4 mt-auto">
+        <div class="container mx-auto px-4 text-center text-sm opacity-70">
+            <p>克苏鲁的呼唤 - KP智能助手 © 2023 | 仅用于非商业用途</p>
+            <p class="mt-1">所有克苏鲁神话相关内容的版权归其各自所有者所有</p>
+        </div>
+    </footer>
+
+    <!-- 模态框 -->
+    <!-- 模组选择 -->
+    <div id="module-select-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black opacity-70"></div>
+        <div class="bg-glass border border-cthulhu-gold rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto relative z-10">
+            <h2 class="text-2xl font-bold mb-4 text-cthulhu-gold font-cthulhu">选择模组</h2>
+            <div class="space-y-4">
+                <div class="module-item p-4 bg-cthulhu-indigo rounded-lg cursor-pointer hover:bg-cthulhu-purple transition-all" data-module="module1">
+                    <h3 class="text-lg font-semibold">黑猫酒馆的秘密</h3>
+                    <p class="text-sm opacity-80 mt-1">一个发生在1920年代新英格兰小镇的神秘事件，调查员被卷入一系列奇怪的失踪案中...</p>
+                    <div class="flex justify-between text-xs mt-2">
+                        <span>难度: 入门</span>
+                        <span>时长: 2-3小时</span>
+                    </div>
+                </div>
+                <div class="module-item p-4 bg-cthulhu-indigo rounded-lg cursor-pointer hover:bg-cthulhu-purple transition-all" data-module="module2">
+                    <h3 class="text-lg font-semibold">深海之下</h3>
+                    <p class="text-sm opacity-80 mt-1">调查员被派往一个偏远渔村调查异常现象，却发现了古老的海底秘密和可怕的仪式...</p>
+                    <div class="flex justify-between text-xs mt-2">
+                        <span>难度: 中等</span>
+                        <span>时长: 4-6小时</span>
+                    </div>
+                </div>
+                <div class="module-item p-4 bg-cthulhu-indigo rounded-lg cursor-pointer hover:bg-cthulhu-purple transition-all" data-module="module3">
+                    <h3 class="text-lg font-semibold">阿卡姆图书馆奇闻</h3>
+                    <p class="text-sm opacity-80 mt-1">一本神秘的古籍出现在阿卡姆图书馆，阅读它的人开始出现奇怪的幻觉和行为...</p>
+                    <div class="flex justify-between text-xs mt-2">
+                        <span>难度: 入门</span>
+                        <span>时长: 1-2小时</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-between">
+                <button id="close-module-modal" class="px-4 py-2 bg-cthulhu-deep hover:bg-cthulhu-indigo transition-all rounded-lg border border-cthulhu-indigo">
+                    取消
+                </button>
+                <button id="upload-module" class="px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold flex items-center gap-2">
+                    <i class="fa fa-upload"></i>
+                    <span>上传模组</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 检定结果 -->
+    <div id="check-result-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black opacity-70"></div>
+        <div class="bg-glass border border-cthulhu-gold rounded-xl p-6 max-w-md w-full relative z-10">
+            <h2 class="text-2xl font-bold mb-4 text-cthulhu-gold font-cthulhu text-center">检定结果</h2>
+            <div id="dice-result" class="text-center py-4">
+                <div id="dice-animation" class="text-6xl mb-4 animate-float">🎲</div>
+                <p id="check-type" class="text-lg mb-2"></p>
+                <p id="check-details" class="opacity-80 mb-4"></p>
+                <p id="check-outcome" class="text-xl font-bold"></p>
+            </div>
+            <button id="close-check-modal" class="w-full mt-4 px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold">
+                确认
+            </button>
+        </div>
+    </div>
+
+    <!-- 规则查询 -->
+    <div id="rules-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black opacity-70"></div>
+        <div class="bg-glass border border-cthulhu-gold rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto relative z-10">
+            <h2 class="text-2xl font-bold mb-4 text-cthulhu-gold font-cthulhu">COC 7版规则摘要</h2>
+            
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-xl font-semibold mb-2">基本检定</h3>
+                    <p class="opacity-80">玩家进行技能检定或属性检定时，投掷1d100，结果小于或等于技能/属性值则成功。</p>
+                    <ul class="list-disc pl-5 mt-2 space-y-1 opacity-80">
+                        <li>极难成功：小于等于1/5技能值</li>
+                        <li>困难成功：小于等于1/2技能值</li>
+                        <li>普通成功：小于等于技能值</li>
+                        <li>失败：大于技能值</li>
+                        <li>大失败：掷出95-100或两次骰值相同且失败</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold mb-2">理智检定</h3>
+                    <p class="opacity-80">当调查员面对恐怖事物时，需要进行理智检定。检定成功则不会损失理智，失败则根据遭遇的恐怖程度损失相应的理智值。</p>
+                    <ul class="list-disc pl-5 mt-2 space-y-1 opacity-80">
+                        <li>轻微恐怖：1d3理智值损失</li>
+                        <li>中等恐怖：1d6理智值损失</li>
+                        <li>严重恐怖：1d10理智值损失</li>
+                        <li>极度恐怖：1d20理智值损失</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <button id="close-rules-modal" class="w-full mt-6 px-4 py-2 bg-cthulhu-indigo hover:bg-cthulhu-purple transition-all rounded-lg border border-cthulhu-gold">
+                关闭
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 核心游戏逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            // 游戏状态
+            const gameState = {
+                isRunning: false,
+                currentModule: null,
+                currentCharacter: null,
+                conversationHistory: [],
+                startTime: null,
+                gameTime: 0,
+                gameTimeInterval: null
+            };
+            
+            // DOM元素引用
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const dialogueArea = document.getElementById('dialogue-area');
+            const gameContent = document.getElementById('game-content');
+            const messageForm = document.getElementById('message-form');
+            const userInput = document.getElementById('user-input');
+            const currentModuleEl = document.getElementById('current-module');
+            const currentCharacterEl = document.getElementById('current-character');
+            const gameTimeEl = document.getElementById('game-time');
+            const characterInfo = document.getElementById('character-info');
+            const btnCreateCharacter = document.getElementById('btn-create-character');
+            
+            // 模态框元素
+            const moduleSelectModal = document.getElementById('module-select-modal');
+            const checkResultModal = document.getElementById('check-result-modal');
+            const rulesModal = document.getElementById('rules-modal');
+            const closeModuleModal = document.getElementById('close-module-modal');
+            const closeCheckModal = document.getElementById('close-check-modal');
+            const closeRulesModal = document.getElementById('close-rules-modal');
+            
+            // 检定结果元素
+            const diceAnimation = document.getElementById('dice-animation');
+            const checkType = document.getElementById('check-type');
+            const checkDetails = document.getElementById('check-details');
+            const checkOutcome = document.getElementById('check-outcome');
+            
+            // 快捷按钮
+            const btnStartAdventure = document.getElementById('btn-start-adventure');
+            const btnNewGame = document.getElementById('btn-new-game');
+            const btnRules = document.getElementById('btn-rules');
+            const btnCheckSkill = document.getElementById('btn-check-skill');
+            const btnRollDice = document.getElementById('btn-roll-dice');
+            
+            // 快捷操作按钮
+            const quickActions = document.querySelectorAll('.quick-action');
+            
+            // 初始化理智值图表
+            const ctx = document.getElementById('sanity-chart').getContext('2d');
+            const sanityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '理智值',
+                        data: [100, 95, 90, 85, 80],
+                        borderColor: '#3a86ff',
+                        backgroundColor: 'rgba(58, 134, 255, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { color: '#eef4ed' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        x: { ticks: { color: '#eef4ed', maxTicksLimit: 5 }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+                    }
+                }
+            });
+            
+            // 事件监听器
+            btnStartAdventure.addEventListener('click', startNewGame);
+            btnNewGame.addEventListener('click', startNewGame);
+            btnRules.addEventListener('click', showRules);
+            btnCheckSkill.addEventListener('click', performSkillCheck);
+            btnRollDice.addEventListener('click', rollDice);
+            btnCreateCharacter.addEventListener('click', createSampleCharacter);
+            
+            closeModuleModal.addEventListener('click', () => moduleSelectModal.classList.add('hidden'));
+            closeCheckModal.addEventListener('click', () => checkResultModal.classList.add('hidden'));
+            closeRulesModal.addEventListener('click', () => rulesModal.classList.add('hidden'));
+            
+            // 模组选择
+            document.querySelectorAll('.module-item').forEach(item => {
+                item.addEventListener('click', (e) => selectModule(e.target.closest('.module-item').dataset.module));
+            });
+            
+            // 消息表单提交
+            messageForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                processPlayerInput();
+            });
+            
+            // 快捷操作按钮
+            quickActions.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    userInput.value = e.target.textContent.trim();
+                    messageForm.dispatchEvent(new Event('submit'));
+                });
+            });
+            
+            // 开始新游戏
+            function startNewGame() {
+                moduleSelectModal.classList.remove('hidden');
+            }
+            
+            // 选择模组
+            function selectModule(moduleId) {
+                const modules = {
+                    'module1': {
+                        id: 'module1',
+                        title: '黑猫酒馆的秘密',
+                        description: '一个发生在1920年代新英格兰小镇的神秘事件，调查员被卷入一系列奇怪的失踪案中...'
+                    },
+                    'module2': {
+                        id: 'module2',
+                        title: '深海之下',
+                        description: '调查员被派往一个偏远渔村调查异常现象，却发现了古老的海底秘密和可怕的仪式...'
+                    },
+                    'module3': {
+                        id: 'module3',
+                        title: '阿卡姆图书馆奇闻',
+                        description: '一本神秘的古籍出现在阿卡姆图书馆，阅读它的人开始出现奇怪的幻觉和行为...'
+                    }
+                };
+                
+                gameState.currentModule = modules[moduleId];
+                currentModuleEl.textContent = gameState.currentModule.title;
+                moduleSelectModal.classList.add('hidden');
+                
+                if (!gameState.currentCharacter) {
+                    createSampleCharacter();
+                } else {
+                    startGame();
+                }
+            }
+            
+            // 创建示例角色
+            function createSampleCharacter() {
+                // 创建一个默认调查员角色
+                const character = {
+                    id: Date.now().toString(),
+                    name: '约翰·史密斯',
+                    occupation: '私人侦探',
+                    attributes: {
+                        str: 12,
+                        con: 14,
+                        siz: 13,
+                        dex: 15,
+                        app: 11,
+                        int: 16,
+                        pow: 14,
+                        edu: 15
+                    },
+                    derivedAttributes: {
+                        hp: 13,
+                        maxHp: 13,
+                        mp: 14,
+                        maxMp: 14,
+                        san: 70,
+                        maxSan: 70,
+                        luck: 70
+                    },
+                    skills: {
+                        '聆听': 40,
+                        '侦察': 60,
+                        '图书馆使用': 50,
+                        '心理学': 45,
+                        '说服': 55,
+                        '躲藏': 35,
+                        '潜行': 30,
+                        '克苏鲁神话': 0
+                    },
+                    belongings: ['笔记本', '钢笔', '手电筒', '左轮手枪', '放大镜']
+                };
+                
+                gameState.currentCharacter = character;
+                updateCharacterDisplay();
+                
+                if (gameState.currentModule) {
+                    startGame();
+                }
+            }
+            
+            // 更新角色显示
+            function updateCharacterDisplay() {
+                if (!gameState.currentCharacter) return;
+                
+                const character = gameState.currentCharacter;
+                
+                // 更新角色信息
+                currentCharacterEl.textContent = `${character.name} (${character.occupation})`;
+                
+                // 显示角色卡相关元素
+                characterInfo.classList.add('hidden');
+                document.getElementById('attributes-card').classList.remove('hidden');
+                document.getElementById('derived-attributes').classList.remove('hidden');
+                document.getElementById('skills-list').classList.remove('hidden');
+                document.getElementById('inventory').classList.remove('hidden');
+                
+                // 更新基础属性
+                document.getElementById('attr-str').textContent = character.attributes.str;
+                document.getElementById('attr-con').textContent = character.attributes.con;
+                document.getElementById('attr-siz').textContent = character.attributes.siz;
+                document.getElementById('attr-dex').textContent = character.attributes.dex;
+                document.getElementById('attr-app').textContent = character.attributes.app;
+                document.getElementById('attr-int').textContent = character.attributes.int;
+                document.getElementById('attr-pow').textContent = character.attributes.pow;
+                document.getElementById('attr-edu').textContent = character.attributes.edu;
+                
+                // 更新派生属性
+                document.getElementById('attr-hp').textContent = `${character.derivedAttributes.hp}/${character.derivedAttributes.maxHp}`;
+                document.getElementById('attr-mp').textContent = `${character.derivedAttributes.mp}/${character.derivedAttributes.maxMp}`;
+                document.getElementById('attr-luck').textContent = character.derivedAttributes.luck;
+                
+                // 更新属性条
+                const hpPercent = (character.derivedAttributes.hp / character.derivedAttributes.maxHp) * 100;
+                const mpPercent = (character.derivedAttributes.mp / character.derivedAttributes.maxMp) * 100;
+                const sanPercent = (character.derivedAttributes.san / character.derivedAttributes.maxSan) * 100;
+                
+                document.getElementById('hp-bar').style.width = `${hpPercent}%`;
+                document.getElementById('mp-bar').style.width = `${mpPercent}%`;
+                document.getElementById('san-bar').style.width = `${sanPercent}%`;
+                document.getElementById('san-value').textContent = `${character.derivedAttributes.san}/${character.derivedAttributes.maxSan}`;
+                document.getElementById('san-percentage').textContent = `${Math.round(sanPercent)}%`;
+                
+                // 更新技能列表
+                const skillsContainer = document.getElementById('skills-container');
+                skillsContainer.innerHTML = '';
+                Object.entries(character.skills).forEach(([skill, value]) => {
+                    const skillEl = document.createElement('div');
+                    skillEl.className = 'flex justify-between items-center';
+                    skillEl.innerHTML = `<span>${skill}</span><span class="font-bold">${value}%</span>`;
+                    skillsContainer.appendChild(skillEl);
+                });
+                
+                // 更新物品栏
+                const itemsList = document.getElementById('items-list');
+                itemsList.innerHTML = '';
+                character.belongings.forEach(item => {
+                    const itemEl = document.createElement('li');
+                    itemEl.textContent = item;
+                    itemsList.appendChild(itemEl);
+                });
+            }
+            
+            // 开始游戏
+            function startGame() {
+                gameState.isRunning = true;
+                gameState.startTime = new Date();
+                gameState.conversationHistory = [];
+                
+                // 隐藏欢迎界面，显示对话区域
+                welcomeScreen.classList.add('hidden');
+                dialogueArea.classList.remove('hidden');
+                
+                // 开始计时
+                startGameTimer();
+                
+                // 生成游戏开始描述
+                generateGameStartDescription();
+            }
+            
+            // 开始游戏计时器
+            function startGameTimer() {
+                gameState.gameTimeInterval = setInterval(() => {
+                    if (!gameState.startTime) return;
+                    
+                    const now = new Date();
+                    const diff = Math.floor((now - gameState.startTime) / 1000);
+                    
+                    const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+                    const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                    const seconds = (diff % 60).toString().padStart(2, '0');
+                    
+                    gameTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
+                }, 1000);
+            }
+            
+            // 生成游戏开始描述
+            function generateGameStartDescription() {
+                if (!gameState.currentModule || !gameState.currentCharacter) return;
+                
+                const descriptions = {
+                    'module1': `
+                        <p>1925年秋，新英格兰的阿卡姆镇笼罩在一片阴郁的雾气中。</p>
+                        <p>作为一名${gameState.currentCharacter.occupation}，你接到了一份奇怪的委托。过去两周内，镇上的黑猫酒馆附近已有三人神秘失踪，当地警方似乎有意淡化此事。</p>
+                        <p>今晚，你决定亲自前往调查。酒馆的木质招牌在风中吱吱作响，微弱的灯光从窗户透出，隐约能听见里面传来的嘈杂声...</p>
+                    `,
+                    'module2': `
+                        <p>1927年夏天，你作为${gameState.currentCharacter.occupation}，被派往缅因州海岸边一个名为因纽斯茅斯的小渔村。</p>
+                        <p>当地渔民最近报告了异常的海洋活动和奇怪的生物目击事件。更令人不安的是，村里的居民行为越来越诡异，很少与外界接触。</p>
+                        <p>当你乘坐的小船靠近码头时，你注意到几个穿着破旧雨衣的人影在远处监视着你。空气中弥漫着海水和腐烂的气味...</p>
+                    `,
+                    'module3': `
+                        <p>1924年春，阿卡姆图书馆收到了一批珍贵的古籍捐赠，其中包括一本罕见的拉丁文手稿《死者之书》的抄本。</p>
+                        <p>作为${gameState.currentCharacter.occupation}，你被邀请来协助鉴定这些古籍。然而，接手这项工作的前两位学者都因不明原因病倒了，一人甚至发疯被送进了精神病院。</p>
+                        <p>现在，你站在图书馆的特藏书库前，管理员用怀疑的眼神看着你，"准备好了吗？记住，不要在里面待太久..."</p>
+                    `
+                };
+                
+                const description = descriptions[gameState.currentModule.id] || 
+                                    `<p>欢迎来到克苏鲁的呼唤世界，${gameState.currentCharacter.name}。</p><p>你的冒险即将开始...</p>`;
+                
+                addKpMessage(description);
+            }
+            
+            // 处理玩家输入
+            function processPlayerInput() {
+                const input = userInput.value.trim();
+                if (!input || !gameState.isRunning) return;
+                
+                // 清空输入框
+                userInput.value = '';
+                
+                // 添加玩家消息到对话历史
+                addPlayerMessage(input);
+                
+                // 模拟KP响应
+                setTimeout(() => generateKpResponse(input), 500);
+            }
+            
+            // 添加玩家消息
+            function addPlayerMessage(message) {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'player-message mb-4';
+                messageEl.innerHTML = `
+                    <div class="font-bold mb-1 text-cthulhu-gold">你:</div>
+                    <div class="bg-cthulhu-indigo p-4 rounded-lg">${message}</div>
+                `;
+                dialogueArea.appendChild(messageEl);
+                
+                // 滚动到底部
+                gameContent.scrollTop = gameContent.scrollHeight;
+            }
+            
+            // 添加KP消息
+            function addKpMessage(message) {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'kp-message mb-4';
+                messageEl.innerHTML = `
+                    <div class="font-bold mb-1 text-cthulhu-gold">KP:</div>
+                    <div class="bg-cthulhu-deep p-4 rounded-lg border-l-4 border-cthulhu-gold">${message}</div>
+                `;
+                dialogueArea.appendChild(messageEl);
+                
+                // 滚动到底部
+                gameContent.scrollTop = gameContent.scrollHeight;
+            }
+            
+            // 生成KP响应
+            function generateKpResponse(playerInput) {
+                // 简单的关键词匹配和模板响应
+                const lowerInput = playerInput.toLowerCase();
+                
+                let response = '';
+                
+                if (lowerInput.includes('查看') || lowerInput.includes('观察')) {
+                    response = `<p>你仔细观察周围环境，发现了一些细节：</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>一件闪着微光的物体半埋在灰尘中</li><li>墙上有一些奇怪的划痕，似乎是最近留下的</li><li>空气中弥漫着一种淡淡的异味</li></ul>`;
+                } else if (lowerInput.includes('调查') || lowerInput.includes('检查')) {
+                    response = `<p>你开始调查这个线索。<span class="text-cthulhu-gold">请进行一次技能检定</span>，你可以使用侦察技能。</p>`;
+                } else if (lowerInput.includes('交谈') || lowerInput.includes('对话') || lowerInput.includes('说')) {
+                    response = `<p>NPC用警惕的眼神看着你，"你想知道什么？"他的声音听起来有些紧张。</p>`;
+                } else if (lowerInput.includes('技能') || lowerInput.includes('检定')) {
+                    performSkillCheck();
+                    return;
+                } else if (lowerInput.includes('骰子')) {
+                    rollDice();
+                    return;
+                } else if (lowerInput.includes('离开') || lowerInput.includes('出去')) {
+                    response = `<p>你决定离开这个地方。当你转身走向出口时，突然听到身后传来一阵奇怪的声音...</p>`;
+                } else {
+                    response = `<p>你的行动产生了一些影响。接下来你想做什么？</p>`;
+                }
+                
+                // 添加KP响应
+                addKpMessage(response);
+            }
+            
+            // 执行技能检定
+            function performSkillCheck() {
+                const skill = '侦察'; // 简化版本，使用固定技能
+                const skillValue = gameState.currentCharacter?.skills[skill] || 50;
+                
+                // 进行检定
+                rollCheck('技能检定', skill, skillValue);
+            }
+            
+            // 掷骰子
+            function rollDice() {
+                const roll = Math.floor(Math.random() * 100) + 1;
+                showCheckResult('骰子投掷', '1d100', `掷出了: ${roll}`);
+            }
+            
+            // 进行检定
+            function rollCheck(checkTypeStr, checkName, checkValue) {
+                // 掷1d100
+                const roll = Math.floor(Math.random() * 100) + 1;
+                
+                let resultText = '';
+                
+                // 判定结果
+                if (roll <= checkValue / 5) {
+                    resultText = `<span class="text-green-400 font-bold">极难成功!</span> 你掷出了 ${roll}，远低于目标值 ${checkValue}`;
+                } else if (roll <= checkValue / 2) {
+                    resultText = `<span class="text-blue-400 font-bold">困难成功!</span> 你掷出了 ${roll}，低于目标值 ${checkValue}`;
+                } else if (roll <= checkValue) {
+                    resultText = `<span class="text-cthulhu-gold font-bold">普通成功!</span> 你掷出了 ${roll}，等于或低于目标值 ${checkValue}`;
+                } else if (roll >= 95) {
+                    resultText = `<span class="text-red-400 font-bold">大失败!</span> 你掷出了 ${roll}，远高于目标值 ${checkValue}`;
+                } else {
+                    resultText = `<span class="text-yellow-400 font-bold">失败!</span> 你掷出了 ${roll}，高于目标值 ${checkValue}`;
+                }
+                
+                showCheckResult(checkTypeStr, `${checkName} (${checkValue}%)`, resultText);
+            }
+            
+            // 显示检定结果
+            function showCheckResult(type, details, outcome) {
+                checkType.textContent = type;
+                checkDetails.innerHTML = details;
+                checkOutcome.innerHTML = outcome;
+                
+                // 添加动画效果
+                diceAnimation.classList.remove('animate-float');
+                void diceAnimation.offsetWidth; // 重置动画
+                diceAnimation.classList.add('animate-float');
+                
+                checkResultModal.classList.remove('hidden');
+            }
+            
+            // 显示规则
+            function showRules() {
+                rulesModal.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
